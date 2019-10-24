@@ -2,7 +2,7 @@
 
 usage ./setports.sh [install | remove]
 
-**And install versions from FreeBSD ports**
+**And install versions from FreeBSD ports php56 php72 php73**
 
 **cd /usr/ports/lang/php56m/ && install clean**
 
