@@ -1,0 +1,12 @@
+--- ./TSRM/configure.ac.orig	2019-10-19 05:16:52.922616000 +0300
++++ ./TSRM/configure.ac	2019-10-19 05:01:54.055962000 +0300
+@@ -16,9 +16,6 @@
+ TSRM_THREADS_CHECKS
+ 
+ AM_PROG_LIBTOOL
+-if test "$enable_debug" != "yes"; then
+-  AM_SET_LIBTOOL_VARIABLE([--silent])
+-fi
+ 
+ dnl TSRM_PTHREAD
+ 

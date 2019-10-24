@@ -1,0 +1,11 @@
+--- ./Zend/zend.h.orig	2019-10-22 12:17:10.550910000 +0300
++++ ./Zend/zend.h	2019-10-22 12:15:52.704465000 +0300
+@@ -193,7 +193,7 @@
+ #endif
+ #define restrict __restrict__
+ 
+-#if (HAVE_ALLOCA || (defined (__GNUC__) && __GNUC__ >= 2)) && !(defined(ZTS) && defined(NETWARE)) && !(defined(ZTS) && defined(HPUX)) && !defined(DARWIN)
++#if (HAVE_ALLOCA || (defined (__GNUC__) && __GNUC__ >= 2)) && !(defined(ZTS) && defined(NETWARE)) && !(defined(ZTS) && defined(HPUX)) && !defined(DARWIN) && !(defined(ZTS) && defined(__FreeBSD__))
+ # define ZEND_ALLOCA_MAX_SIZE (32 * 1024)
+ # define ALLOCA_FLAG(name) \
+ 	zend_bool name;

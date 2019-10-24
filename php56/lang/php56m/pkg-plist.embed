@@ -1,0 +1,2 @@
+include/php/20131226/sapi/embed/php_embed.h
+lib/libphp5.so

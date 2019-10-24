@@ -1,0 +1,2 @@
+include/php/20170718/sapi/embed/php_embed.h
+lib/libphp7.so

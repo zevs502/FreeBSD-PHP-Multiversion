@@ -1,0 +1,11 @@
+--- ./ext/ext_skel.orig	2019-10-22 12:17:10.884697000 +0300
++++ ./ext/ext_skel	2019-10-22 12:16:45.306157000 +0300
+@@ -70,7 +70,7 @@
+ fi
+ 
+ if test -z "$skel_dir"; then
+-  skel_dir="skeleton"
++  skel_dir="/usr/lib/php/@FREEBSD_PHP_API@/skeleton"
+ fi
+ 
+ ## convert skel_dir to full path

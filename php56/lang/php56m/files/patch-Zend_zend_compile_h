@@ -1,0 +1,12 @@
+--- ./Zend/zend_compile.h.orig	2019-10-22 12:17:10.592458000 +0300
++++ ./Zend/zend_compile.h	2019-10-22 12:15:52.718208000 +0300
+@@ -414,9 +414,6 @@
+ 
+ #define EX(element) execute_data.element
+ 
+-#define EX_TMP_VAR(ex, n)	   ((temp_variable*)(((char*)(ex)) + ((int)(n))))
+-#define EX_TMP_VAR_NUM(ex, n)  (EX_TMP_VAR(ex, 0) - (1 + (n)))
+-
+ #define EX_CV_NUM(ex, n)       (((zval***)(((char*)(ex))+ZEND_MM_ALIGNED_SIZE(sizeof(zend_execute_data))))+(n))
+ 
+ 

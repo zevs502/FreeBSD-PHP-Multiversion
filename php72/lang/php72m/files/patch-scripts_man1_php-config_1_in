@@ -1,0 +1,11 @@
+--- ./scripts/man1/php-config.1.in.orig	2019-10-21 23:27:17.311952000 +0300
++++ ./scripts/man1/php-config.1.in	2019-10-21 23:27:16.631085000 +0300
+@@ -44,7 +44,7 @@
+ .TP
+ .PD 0
+ .B \-\-php-sapis
+-Show all SAPI modules available
++Show all SAPI modules installed on the FreeBSD system
+ .TP
+ .PD 0
+ .B \-\-configure-options

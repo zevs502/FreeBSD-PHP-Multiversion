@@ -1,0 +1,7 @@
+etc/php/7.3/fpm/php-fpm.conf.default
+etc/php/7.3/fpm/pool.d/www.conf.default
+etc/rc.d/php7.3-fpm
+man/man8/php-fpm7.3.8.gz
+sbin/php-fpm7.3
+sbin/php_fpm73
+share/php/7.3/fpm/status.html

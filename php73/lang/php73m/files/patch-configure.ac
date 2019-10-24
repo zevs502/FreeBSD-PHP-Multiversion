@@ -1,0 +1,83 @@
+--- ./configure.ac.orig	2019-10-19 05:16:53.199502000 +0300
++++ ./configure.ac	2019-10-19 05:01:54.058003000 +0300
+@@ -322,7 +323,6 @@
+ dnl .
+ dnl -------------------------------------------------------------------------
+ 
+-PTHREADS_CHECK
+ PHP_HELP_SEPARATOR([SAPI modules:])
+ PHP_SHLIB_SUFFIX_NAMES
+ PHP_BUILD_PROGRAM
+@@ -353,15 +353,9 @@
+   AC_MSG_RESULT([none])
+ fi
+ 
+-dnl Exit early
+-if test -z "$PHP_INSTALLED_SAPIS"; then
+-  AC_MSG_ERROR([Nothing to build.])
+-fi
+-
+ dnl force ZTS
+ if test "$enable_maintainer_zts" = "yes"; then
+   PTHREADS_ASSIGN_VARS
+-  PTHREADS_FLAGS
+ fi
+ 
+ dnl Starting system checks.
+@@ -709,7 +703,7 @@
+ )
+ 
+ dnl Some systems (like OpenSolaris) do not have nanosleep in libc
+-PHP_CHECK_FUNC_LIB(nanosleep, rt)
++PHP_CHECK_FUNC(nanosleep, rt)
+ 
+ dnl Check for getaddrinfo, should be a better way, but...
+ dnl Also check for working getaddrinfo
+@@ -1160,7 +1154,7 @@
+ fi
+ 
+ PHP_ARG_WITH(pear, [whether to install PEAR],
+-[  --with-pear=DIR         Install PEAR in DIR @<:@PREFIX/lib/php@:>@
++[  --with-pear=DIR         Install PEAR in DIR @<:@PREFIX/share/php@:>@
+   --without-pear          Do not install PEAR], DEFAULT, yes)
+ 
+ if test "$PHP_PEAR" != "no"; then
+@@ -1190,6 +1184,7 @@
+   PHP_ADD_MAKEFILE_FRAGMENT($abs_srcdir/pear/Makefile.frag,$abs_srcdir/pear,pear)
+ fi
+ 
++PEAR_INSTALLDIR=/usr/local/share/php
+ 
+ dnl Configuring Zend and TSRM.
+ dnl -------------------------------------------------------------------------
+@@ -1262,8 +1257,12 @@
+ 
+ ZEND_MODULE_API_NO=`$EGREP '#define ZEND_MODULE_API_NO ' $srcdir/Zend/zend_modules.h|$SED 's/#define ZEND_MODULE_API_NO //'`
+ 
++FREEBSD_PHP_API=$ZEND_MODULE_API_NO
++
++AC_SUBST(ZEND_MODULE_API_NO)
++
+ if test -z "$EXTENSION_DIR"; then
+-  extbasedir=$ZEND_MODULE_API_NO
++  extbasedir=$FREEBSD_PHP_API
+   if test "$oldstyleextdir" = "yes"; then
+     if test "$PHP_DEBUG" = "1"; then
+       part1=debug
+@@ -1401,6 +1400,7 @@
+ PHP_SUBST(CXXFLAGS)
+ PHP_SUBST(CXXFLAGS_CLEAN)
+ PHP_SUBST_OLD(DEBUG_CFLAGS)
++PHP_SUBST_OLD(FREEBSD_PHP_API)
+ PHP_SUBST_OLD(EXTENSION_DIR)
+ PHP_SUBST_OLD(EXTRA_LDFLAGS)
+ PHP_SUBST_OLD(EXTRA_LDFLAGS_PROGRAM)
+@@ -1473,8 +1473,6 @@
+   AC_DEFUN([AC_PROG_CXXCPP], [php_prog_cxxcpp=disabled])
+ ])
+ AC_PROG_LIBTOOL
+-
+-PHP_SET_LIBTOOL_VARIABLE([--silent])
+ 
+ dnl libtool 1.4.3 needs this.
+ PHP_SET_LIBTOOL_VARIABLE([--preserve-dup-deps])

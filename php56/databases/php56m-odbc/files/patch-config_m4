@@ -1,0 +1,62 @@
+--- config.m4.orig	2019-10-23 15:28:50.664378000 +0300
++++ config.m4	2019-10-23 15:31:58.322206000 +0300
+@@ -105,6 +105,29 @@
+                              Use the special value of 0 to prevent an explicit ODBCVER to be defined. ], 0x0300)
+ 
+ if test -z "$ODBC_TYPE"; then
++PHP_ARG_WITH(unixODBC,,
++[  --with-unixODBC[=DIR]     Include unixODBC support [/usr/local]])
++    
++  AC_MSG_CHECKING(for unixODBC support)
++  if test "$PHP_UNIXODBC" != "no"; then
++    if test "$PHP_UNIXODBC" = "yes"; then
++      PHP_UNIXODBC=/usr/local
++    fi
++    ODBC_INCDIR=$PHP_UNIXODBC/include
++    ODBC_LIBDIR=$PHP_UNIXODBC/$PHP_LIBDIR
++    ODBC_LFLAGS=-L$ODBC_LIBDIR
++    ODBC_INCLUDE=-I$ODBC_INCDIR
++    ODBC_LIBS=-lodbc
++    ODBC_TYPE=unixODBC
++    PHP_ODBC_CHECK_HEADER(sqlext.h)
++    AC_DEFINE(HAVE_UNIXODBC,1,[ ])
++    AC_MSG_RESULT([$ext_output])
++  else
++    AC_MSG_RESULT(no)
++  fi
++fi
++
++if test -z "$ODBC_TYPE"; then
+ PHP_ARG_WITH(adabas,,
+ [  --with-adabas[=DIR]       Include Adabas D support [/usr/local]])
+ 
+@@ -440,29 +463,6 @@
+     ODBC_LIBS=-lesoobclient
+     ODBC_TYPE=esoob
+     AC_DEFINE(HAVE_ESOOB,1,[ ])
+-    AC_MSG_RESULT([$ext_output])
+-  else
+-    AC_MSG_RESULT(no)
+-  fi
+-fi
+-
+-if test -z "$ODBC_TYPE"; then
+-PHP_ARG_WITH(unixODBC,,
+-[  --with-unixODBC[=DIR]     Include unixODBC support [/usr/local]])
+-
+-  AC_MSG_CHECKING(for unixODBC support)
+-  if test "$PHP_UNIXODBC" != "no"; then
+-    if test "$PHP_UNIXODBC" = "yes"; then
+-      PHP_UNIXODBC=/usr/local
+-    fi
+-    ODBC_INCDIR=$PHP_UNIXODBC/include
+-    ODBC_LIBDIR=$PHP_UNIXODBC/$PHP_LIBDIR
+-    ODBC_LFLAGS=-L$ODBC_LIBDIR
+-    ODBC_INCLUDE=-I$ODBC_INCDIR
+-    ODBC_LIBS=-lodbc
+-    ODBC_TYPE=unixODBC
+-    PHP_ODBC_CHECK_HEADER(sqlext.h)
+-    AC_DEFINE(HAVE_UNIXODBC,1,[ ])
+     AC_MSG_RESULT([$ext_output])
+   else
+     AC_MSG_RESULT(no)

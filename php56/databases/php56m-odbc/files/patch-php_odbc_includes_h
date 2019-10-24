@@ -1,0 +1,45 @@
+--- php_odbc_includes.h.orig	2019-10-23 15:15:11.767247000 +0300
++++ php_odbc_includes.h	2019-10-23 15:17:58.831874000 +0300
+@@ -62,42 +62,6 @@
+ #include <sqlext.h>
+ #undef HAVE_SQL_EXTENDED_FETCH
+ 
+-#elif defined(HAVE_ADABAS) /* Adabas D */
+-
+-#define ODBC_TYPE "Adabas D"
+-#include <WINDOWS.H>
+-#include <sql.h>
+-#include <sqlext.h>
+-#define HAVE_SQL_EXTENDED_FETCH 1
+-#define SQL_SUCCEEDED(rc) (((rc)&(~1))==0)
+-#define SQLINTEGER ULONG
+-#define SQLUSMALLINT USHORT
+-
+-#elif defined(HAVE_SAPDB) /* SAP DB */
+-
+-#define ODBC_TYPE "SAP DB"
+-#include <WINDOWS.H>
+-#include <sql.h>
+-#include <sqlext.h>
+-#define HAVE_SQL_EXTENDED_FETCH 1
+-#define SQL_SUCCEEDED(rc) (((rc)&(~1))==0)
+-
+-#elif defined(HAVE_IODBC) /* iODBC library */
+-
+-#ifdef CHAR
+-#undef CHAR
+-#endif
+-
+-#ifdef SQLCHAR
+-#undef SQLCHAR
+-#endif
+-
+-#define ODBC_TYPE "iODBC"
+-#include <sql.h>
+-#include <sqlext.h>
+-#include <iodbcext.h>
+-#define HAVE_SQL_EXTENDED_FETCH 1
+-
+ #elif defined(HAVE_UNIXODBC) /* unixODBC library */
+ 
+ #ifdef CHAR

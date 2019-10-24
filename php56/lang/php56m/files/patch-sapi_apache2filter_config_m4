@@ -1,0 +1,11 @@
+--- ./sapi/apache2filter/config.m4.orig	2019-10-22 12:17:11.005402000 +0300
++++ ./sapi/apache2filter/config.m4	2019-10-22 12:15:52.794704000 +0300
+@@ -68,7 +68,7 @@
+   fi
+ 
+   APXS_LIBEXECDIR='$(INSTALL_ROOT)'`$APXS -q LIBEXECDIR`
+-  if test -z `$APXS -q SYSCONFDIR`; then
++  if true; then
+     INSTALL_IT="\$(mkinstalldirs) '$APXS_LIBEXECDIR' && \
+                  $APXS -S LIBEXECDIR='$APXS_LIBEXECDIR' \
+                        -i -n php5"

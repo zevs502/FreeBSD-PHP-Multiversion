@@ -1,0 +1,11 @@
+# $FreeBSD: head/converters/php72m-recode/Makefile 481525 2018-10-08 08:52:51Z tz $
+
+CATEGORIES=	converters
+
+MASTERDIR=	${.CURDIR}/../../lang/php72m
+
+PKGNAMESUFFIX=	-recode
+
+TEST_TARGET=	test
+
+.include "${MASTERDIR}/Makefile"

@@ -1,0 +1,497 @@
+# $FreeBSD: head/Mk/Uses/php.mk 512406 2019-09-20 12:21:11Z tz $
+#
+# Support for PHP-based ports.
+#
+# Feature:	php
+# Usage:	USES=php
+# Valid ARGS:	(none), phpize, ext, zend, build, cli, cgi, mod, web, embed,
+#		pecl, flavors, noflavors
+#
+#	- phpize   : Use to build a PHP extension.
+#	- ext      : Use to build, install and register a PHP extension.
+#	- zend     : Use to build, install and register a Zend extension.
+#	- build    : Set PHP also as a build dependency.
+#	- cli      : Want the CLI version of PHP.
+#	- cgi      : Want the CGI version of PHP.
+#	- mod      : Want the Apache Module for PHP.
+#	- web      : Want the Apache Module or the CGI version of PHP.
+#	- embed    : Want the embedded library version of PHP.
+#	- pecl     : Fetches from PECL.
+#	- flavors  : Generates flavors for supported versions.
+#		     (implied by phpize,ext,zend,pecl)
+#	- noflavors: Prevents generation of flavor.
+#
+# If the port requires a predefined set of PHP extensions, they can be
+# listed in this way:
+#
+# USE_PHP=	ext1 ext2 ext3
+#
+# PHP and Zend extensions built with :ext and :zend are automatically enabled
+# when the port is installed.  Each port creates a PHP_EXT_INI_FILE file and
+# registers the extension in it.
+#
+# The PHP_EXT_INI_FILE file has a priority number embeded into its name so that
+# extensions are loaded in the right order.  The priority is defined by
+# PHP_MOD_PRIO and is a number between 00 and 99.
+#
+# For extensions that do not depend on any extension, the priority is
+# automatically set to 20, for extensions that depend on another extension, the
+# priority is automatically set to 30.  Some extensions may need to be loaded
+# before everyone else (for example opcache), or after an extension with a
+# priotity of 30, in that case, add PHP_MOD_PRIO=XX in the port's Makefile.
+# For example:
+#
+# USES=		php:ext
+# USE_PHP=	xml wddx
+# PHP_MOD_PRIO=	40
+#
+# The port can set these options in its Makefile before bsd.port.pre.mk:
+#
+# IGNORE_WITH_PHP=N - The port doesn't work with PHP version N.
+#
+# You may combine multiple php:* arguments.
+# Don't specify any php:* argument if your port will work with every PHP SAPI.
+#
+# If you are building PHP-based ports in poudriere(8) with ZTS enabled,
+# add WITH_MPM=event to /etc/make.conf to prevent build failures.
+
+.if !defined(_INCLUDE_USES_PHP_MK)
+
+PHP_Include_MAINTAINER=	zevs5@zevs5.ru
+
+_INCLUDE_USES_PHP_MK=	yes
+
+_PHP_VALID_ARGS=	build cgi cli embed ext flavors mod noflavors pecl \
+			phpize web zend
+_PHP_UNKNOWN_ARGS=
+.for arg in ${phpm_ARGS}
+.  if empty(_PHP_VALID_ARGS:M${arg})
+_PHP_UNKNOWN_ARGS+=	${arg}
+.  endif
+.endfor
+.if !empty(_PHP_UNKNOWN_ARGS)
+IGNORE=	has unknown USES=phpm arguments: ${_PHP_UNKNOWN_ARGS}
+.endif
+
+.  if ${phpm_ARGS:Mbuild} && ( ${phpm_ARGS:Mphpize} || ${phpm_ARGS:Mext} || ${phpm_ARGS:Mzend} )
+DEV_WARNING+=	"USES=phpm:build is included in USES=phpm:phpize, USES=phpm:ext, and USES=phpm:zend, so it is not needed"
+.  endif
+.  if ${phpm_ARGS:Mflavors} && ( ${phpm_ARGS:Mphpize} || ${phpm_ARGS:Mext} || ${phpm_ARGS:Mzend} || ${phpm_ARGS:Mpecl} )
+DEV_WARNING+=	"USES=phpm:flavors is included in phpize, ext, zend and pecl, so it is not needed."
+.  endif
+.  if ${phpm_ARGS:Mphpize} && ( ${phpm_ARGS:Mext} || ${phpm_ARGS:Mzend} )
+DEV_WARNING+=	"USES=phpm:phpize is included in USES=phpm:ext and USES=phpm:zend, so it is not needed"
+.  endif
+.  if ${phpm_ARGS:Mext} && ${phpm_ARGS:Mzend}
+DEV_WARNING+=	"USES=phpm:ext is included in USES=phpm:zend, so it is not needed"
+.  endif
+.  if ${phpm_ARGS:Mext} && ${phpm_ARGS:Mpecl}
+DEV_WARNING+=	"USES=phpm:ext is included in USES=phpm:pecl, so it is not needed"
+.  endif
+
+.  if ( ${phpm_ARGS:Mphpize} || ${phpm_ARGS:Mext} || ${phpm_ARGS:Mzend} || ${phpm_ARGS:Mpecl} ) && !${phpm_ARGS:Mnoflavors}
+phpm_ARGS+=	flavors
+.  endif
+
+.  if ${phpm_ARGS:Mnoflavors} && ${phpm_ARGS:Mflavors}
+phpm_ARGS:=	${phpm_ARGS:Nflavors}
+.  endif
+
+.  if ${phpm_ARGS:Mpecl}
+phpm_ARGS+=	ext
+.    if !defined(USE_GITHUB)
+EXTRACT_SUFX=	.tgz
+MASTER_SITES=	https://pecl.php.net/get/ \
+		http://pecl.php.net/get/
+.    endif
+PKGNAMEPREFIX=	${PECL_PKGNAMEPREFIX}
+DIST_SUBDIR=	PECL
+.  endif
+
+PHPBASE?=	${LOCALBASE}
+
+_ALL_PHP_VERSIONS=	56 71 72 73 74
+
+# Make the already installed PHP the default one.
+.  if exists(${PHPBASE}/etc/php/${PORTCURSUFFIX}/php.conf)
+.include "${PHPBASE}/etc/php/${PORTCURSUFFIX}/php.conf"
+.    if !defined(PHP_EXT_DIR)
+PHP_EXT_DIR!=	${PHPBASE}/bin/php-config${PORTCURSUFFIX} --extension-dir | ${SED} -ne 's,^${PHPBASE}/lib/php/\(.*\),\1,p'
+.    endif
+.    if !defined(PHP_INCL_DIR)
+PHP_INCL_DIR!=	${PHPBASE}/bin/php-config${PORTCURSUFFIX} --phpapi
+.    endif
+_INSTALLED_PHP_VER:=	${PHP_VER}
+# If we have an installed version of PHP, and this does not support it, set
+# IGNORE to fail early as you cannot install two different versions of PHP at
+# the same time anyway.
+#.    if defined(IGNORE_WITH_PHP) && ${IGNORE_WITH_PHP:M${_INSTALLED_PHP_VER}}
+#IGNORE=	does not work with PHP versions "${IGNORE_WITH_PHP}" and "${_INSTALLED_PHP_VER}" is installed.
+#.    endif
+
+.  else
+PHP_VER?=	${PHP_DEFAULT:S/.//}
+.  endif # .if exists(${PHPBASE}/etc/php.conf)
+
+# Use the "default" php version as th first version for flavors, so that it
+# gets to be the default flavor.
+_ALL_FLAVOR_VERSIONS=	${PHP_VER} ${_ALL_PHP_VERSIONS:N${PHP_VER}}
+
+# If we want flavors, fill in FLAVORS with the allowed PHP versions, if some
+# cannot be used, or all of them if they all can.
+# Then if there is no flavor set, use the first one as the default.
+.  if ${phpm_ARGS:Mflavors}
+.    if empty(FLAVORS)
+.      if defined(IGNORE_WITH_PHP)
+.        for _v in ${_ALL_FLAVOR_VERSIONS}
+.          if empty(IGNORE_WITH_PHP:M${_v})
+# Avoid a leading space in FLAVORS.
+.            if empty(FLAVORS)
+FLAVORS:=	php${_v}m
+.            else
+FLAVORS:=	${FLAVORS} php${_v}m
+.            endif
+.          endif
+.        endfor
+.      else # defined(IGNORE_WITH_PHP)
+FLAVORS:=	${_ALL_FLAVOR_VERSIONS:S/^/php/}
+.      endif # defined(IGNORE_WITH_PHP)
+.    endif
+.    if empty(FLAVOR)
+FLAVOR=	${FLAVORS:[1]}
+.    endif
+.  endif
+
+# This variable is for dependencies lines, so you write:
+# ${PHP_PKGNAMEPREFIX}foo:devel/php-foo@${PHP_FLAVOR}
+PHP_FLAVOR=	php${PHP_VER}m
+
+# So, we have PHP flavors, set PHP_VER accordingly.
+.  if ${FLAVOR:Mphp[0-9][0-9]m}
+.if defined(PORTCURSUFFIX)
+PHP_VER=	${PORTCURSUFFIX:S/.//}
+.else
+PHP_VER=	${FLAVOR:S/^php//}
+.endif
+.  endif
+
+# If lang/php is not installed, or if we have a php flavor but want a non
+# default one, we need to overwrite those.
+.  if empty(PHP_EXT_DIR) || empty(PHP_EXT_INC) || \
+	(${FLAVOR:Mphp[0-9][0-9]m} && ${FLAVOR} != ${FLAVORS:[1]})
+# When adding a version, please keep the comment in
+# Mk/bsd.default-versions.mk in sync.
+.    if ${PHP_VER} == 74
+PHP_EXT_DIR=   20190902
+PHP_EXT_INC=    hash pcre spl
+.    elif ${PHP_VER} == 73
+PHP_EXT_DIR=   20180731
+PHP_EXT_INC=    pcre spl
+.    elif ${PHP_VER} == 72
+PHP_EXT_DIR=   20170718
+PHP_EXT_INC=    pcre spl
+.    elif ${PHP_VER} == 56
+PHP_EXT_DIR=   20131226
+PHP_EXT_INC=    pcre spl
+.    elif ${PHP_VER} == 71
+PHP_EXT_DIR=   20160303
+PHP_EXT_INC=    pcre spl
+.    else
+# (rene) default to DEFAULT_VERSIONS
+PHP_EXT_DIR=	20170718
+PHP_EXT_INC=	pcre spl
+.    endif
+
+# Try to figure out what the PHP_EXT_DIR should be WRT the
+# installed Apache port.
+HTTPD?=		${LOCALBASE}/sbin/httpd
+.    if exists(${HTTPD})
+APACHE_THR!=	${HTTPD} -V | ${AWK} '/threaded/ {print $2}'
+.      if ${APACHE_THR:Myes}
+PHP_EXT_DIR:=	${PHP_EXT_DIR}-zts
+.      endif
+.    elif defined(APACHE_PORT) && (${APACHE_PORT:M*worker*} != "" || ${APACHE_PORT:M*event*} != "")
+PHP_EXT_DIR:=	${PHP_EXT_DIR}-zts
+.    elif defined(WITH_MPM) && (${WITH_MPM} == "worker" || ${WITH_MPM} == "event")
+PHP_EXT_DIR:=	${PHP_EXT_DIR}-zts
+.    endif
+
+.    if defined(WITH_DEBUG)
+PHP_EXT_DIR:=	${PHP_EXT_DIR}-debug
+.    endif
+PHP_SAPI?=	""
+.  endif # empty(PHP_EXT_DIR) || empty(PHP_EXT_INC) || (${FLAVOR:Mphp[0-9][0-9]} && ${FLAVOR} != ${FLAVORS:[1]})
+
+# Set a few PKGNAME(PRE|SUF)FIX to be used in ports.
+PHP_PKGNAMEPREFIX=	php${PHP_VER}m-
+PHP_PKGNAMESUFFIX=	-php${PHP_VER}m
+PECL_PKGNAMEPREFIX=	php${PHP_VER}m-pecl-
+
+.  if defined(IGNORE_WITH_PHP)
+.    for VER in ${IGNORE_WITH_PHP}
+.      if ${PHP_VER} == "${VER}"
+_IGNORE_PHP_SET=
+IGNORE=		cannot be installed: doesn't work with lang/php${PHP_VER}m port\
+		(doesn't support PHP ${IGNORE_WITH_PHP:C/^([57])/\1./})
+.      endif
+.    endfor
+.  endif
+
+.  if ${phpm_ARGS:Mweb}
+.    if ${phpm_ARGS:Mcgi} || ${phpm_ARGS:Mmod}
+check-makevars::
+		@${ECHO_CMD} "If you use :web you cannot also use :cgi"
+		@${ECHO_CMD} "or :mod. Use only one of them."
+		@${FALSE}
+.    endif
+.  endif
+
+.  if ${phpm_ARGS:Mcgi}
+.    if defined(PHP_VERSION) && ${PHP_SAPI:Mcgi} == "" && ${PHP_SAPI:Mfpm} == ""
+check-makevars::
+		@${ECHO_CMD} "This port requires the CGI version of PHP, but you have already"
+		@${ECHO_CMD} "installed a PHP port without CGI."
+		@${FALSE}
+.    endif
+.  endif
+
+.  if ${phpm_ARGS:Mcli}
+.    if defined(PHP_VERSION) && ${PHP_SAPI:Mcli} == ""
+check-makevars::
+		@${ECHO_CMD} "This port requires the CLI version of PHP, but you have already"
+		@${ECHO_CMD} "installed a PHP port without CLI."
+		@${FALSE}
+.    endif
+.  endif
+
+.  if ${phpm_ARGS:Membed}
+.    if defined(PHP_VERSION) && ${PHP_SAPI:Membed} == ""
+check-makevars::
+		@${ECHO_CMD} "This port requires the embedded library version of PHP, but you have already"
+		@${ECHO_CMD} "installed a PHP port without the embedded library."
+		@${FALSE}
+.    endif
+.  endif
+
+PHP_PORT?=	lang/php${PHP_VER}m
+MOD_PHP_PORT?=	www/mod_php${PHP_VER}m
+
+.  if ${phpm_ARGS:Mbuild}
+BUILD_DEPENDS+=	${PHPBASE}/include/php/${PHP_INCL_DIR}/main/php.h:${PHP_PORT}
+.  endif
+RUN_DEPENDS+=	${PHPBASE}/include/php/${PHP_INCL_DIR}/main/php.h:${PHP_PORT}
+.  if  ${phpm_ARGS:Mmod} || (${phpm_ARGS:Mweb} && defined(PHP_VERSION) && ${PHP_SAPI:Mcgi} == "" && ${PHP_SAPI:Mfpm} == "")
+USE_APACHE_RUN=	22+
+.include "${PORTSDIR}/Mk/Uses/apache.mk"
+# libphpX.so only has the major version number in it, so remove the last digit of PHP_VER to get it.
+RUN_DEPENDS+=	${PHPBASE}/${APACHEMODDIR}/libphp${PHP_VER:C/.$//}.so:${MOD_PHP_PORT}
+.  endif
+
+PLIST_SUB+=	PHP_EXT_DIR=${PHP_EXT_DIR}
+SUB_LIST+=	PHP_EXT_DIR=${PHP_EXT_DIR}
+
+.  if ${phpm_ARGS:Mphpize} || ${phpm_ARGS:Mext} || ${phpm_ARGS:Mzend}
+BUILD_DEPENDS+=	${PHPBASE}/bin/phpize${PORTCURSUFFIX}:${PHP_PORT} \
+		autoconf>0:devel/autoconf
+GNU_CONFIGURE=	yes
+CONFIGURE_ARGS+=--with-php-config=${PHPBASE}/bin/php-config${PORTCURSUFFIX}
+
+_USES_configure+=	190:phpize-message 250:do-phpize
+
+phpize-message:
+	@${ECHO_MSG} "===>  PHPizing for ${PKGNAME}"
+
+do-phpize:
+	@(cd ${WRKSRC}; ${SETENV} ${SCRIPTS_ENV} ${PHPBASE}/bin/phpize${PORTCURSUFFIX})
+.  endif
+
+_USES_POST+=phpm
+.endif
+
+.if defined(_POSTMKINCLUDED) && !defined(_INCLUDE_USES_PHP_POST_MK)
+
+_INCLUDE_USES_PHP_POST_MK=yes
+
+.  if ${phpm_ARGS:Mext} || ${phpm_ARGS:Mzend}
+PHP_MODNAME?=	${PORTNAME}
+PHP_EXT_PKGMESSAGE=	${WRKDIR}/php-ext-pkg-message
+_PKGMESSAGES+=	${PHP_EXT_PKGMESSAGE}
+PHP_HEADER_DIRS+=	.
+# If there is no priority defined, we wing it.
+.    if !defined(PHP_MOD_PRIO)
+.      if defined(USE_PHP)
+# If an extension needs another, put it after the others.
+PHP_MOD_PRIO=	30
+.      else
+# Otherwise, put it where it with everybody.
+PHP_MOD_PRIO=	20
+.      endif
+.    endif
+PHP_EXT_INI_FILE=	etc/php/${PORTCURSUFFIX}/mods-available/${PHP_MODNAME}.ini
+
+do-install:
+	@${MKDIR} ${STAGEDIR}${PREFIX}/lib/php/${PHP_EXT_DIR}
+	@${INSTALL_LIB} ${WRKSRC}/modules/${PHP_MODNAME}.so \
+		${STAGEDIR}${PREFIX}/lib/php/${PHP_EXT_DIR}
+.    for header in ${PHP_HEADER_DIRS}
+		@${MKDIR} ${STAGEDIR}${PREFIX}/include/php/${PHP_INCL_DIR}/ext/${PHP_MODNAME}/${header}
+		@${INSTALL_DATA} ${WRKSRC}/${header}/*.h \
+			${STAGEDIR}${PREFIX}/include/php/${PHP_INCL_DIR}/ext/${PHP_MODNAME}/${header}
+.    endfor
+	@${RM} ${STAGEDIR}${PREFIX}/include/php/${PHP_INCL_DIR}/ext/${PHP_MODNAME}/config.h
+	@${EGREP} "#define (COMPILE|HAVE|USE)_" ${WRKSRC}/config.h \
+		> ${STAGEDIR}${PREFIX}/include/php/${PHP_INCL_DIR}/ext/${PHP_MODNAME}/config.h
+	@${MKDIR} ${STAGEDIR}${PREFIX}/etc/php/${PORTCURSUFFIX}/mods-available
+	@${ECHO_CMD} "; configuration for php ${PHP_MODNAME} module" > ${STAGEDIR}${PREFIX}/${PHP_EXT_INI_FILE}
+	@${ECHO_CMD} "; priority=${PHP_MOD_PRIO}" >> ${STAGEDIR}${PREFIX}/${PHP_EXT_INI_FILE}
+.    if ${phpm_ARGS:Mzend}
+	@${ECHO_CMD} "zend_extension=${PHP_MODNAME}.so" >> ${STAGEDIR}${PREFIX}/${PHP_EXT_INI_FILE}
+.    else
+	@${ECHO_CMD} "extension=${PHP_MODNAME}.so" >> ${STAGEDIR}${PREFIX}/${PHP_EXT_INI_FILE}
+.    endif
+
+_USES_stage+=	899:add-plist-phpext
+add-plist-phpext:
+	@${ECHO_CMD} "lib/php/${PHP_EXT_DIR}/${PHP_MODNAME}.so" \
+		>> ${TMPPLIST}
+	@${FIND} -P ${STAGEDIR}${PREFIX}/include/php/${PHP_INCL_DIR}/ext/${PHP_MODNAME} ! -type d 2>/dev/null | \
+		${SED} -ne 's,^${STAGEDIR}${PREFIX}/,,p' >> ${TMPPLIST}
+	@${ECHO_CMD} "@postexec echo \#include \\\"ext/${PHP_MODNAME}/config.h\\\" >> %D/include/php/${PHP_INCL_DIR}/ext/php_config.h" \
+		>> ${TMPPLIST}
+	@${ECHO_CMD} "@preunexec cp %D/include/php/${PHP_INCL_DIR}/ext/php_config.h %D/include/php/${PHP_INCL_DIR}/ext/php_config.h.orig" \
+		>> ${TMPPLIST}
+	@${ECHO_CMD} "@preunexec grep -v ext/${PHP_MODNAME}/config.h %D/include/php/${PHP_INCL_DIR}/ext/php_config.h.orig > %D/include/php/${PHP_INCL_DIR}/ext/php_config.h || true" \
+		>> ${TMPPLIST}
+	@${ECHO_CMD} "@preunexec ${RM} %D/include/php/${PHP_INCL_DIR}/ext/php_config.h.orig" \
+		>> ${TMPPLIST}
+	@${ECHO_CMD} "${PHP_EXT_INI_FILE}" \
+		>> ${TMPPLIST}
+	@${ECHO_CMD} "[" > ${PHP_EXT_PKGMESSAGE}
+	@${ECHO_CMD} "{" >> ${PHP_EXT_PKGMESSAGE}
+	@${ECHO_CMD} "  message: <<EOD" >> ${PHP_EXT_PKGMESSAGE}
+	@${ECHO_CMD} "This file has been added to automatically load the installed extension:" >> ${PHP_EXT_PKGMESSAGE}
+	@${ECHO_CMD} "${PREFIX}/${PHP_EXT_INI_FILE}" >> ${PHP_EXT_PKGMESSAGE}
+	@${ECHO_CMD} "EOD" >> ${PHP_EXT_PKGMESSAGE}
+	@${ECHO_CMD} "  type: install" >> ${PHP_EXT_PKGMESSAGE}
+	@${ECHO_CMD} "}" >> ${PHP_EXT_PKGMESSAGE}
+	@${ECHO_CMD} "]" >> ${PHP_EXT_PKGMESSAGE}
+.  endif
+
+# Extensions
+.  if defined(USE_PHP) && ${USE_PHP:tl} != "yes"
+# non-version specific components
+_USE_PHP_ALL=	bcmath bitset bz2 calendar ctype curl dba dom \
+		enchant exif fileinfo filter ftp gd gettext gmp \
+		hash iconv igbinary imap intl json ldap mbstring mcrypt \
+		memcache memcached mysql mysqli odbc opcache \
+		openssl pcntl pcre pdf pdo pdo_dblib pdo_firebird pdo_mysql \
+		pdo_odbc pdo_pgsql pdo_sqlite phar pgsql posix \
+		pspell radius readline redis session shmop simplexml snmp soap\
+		sockets spl sqlite3 sysvmsg sysvsem sysvshm \
+		tidy tokenizer xml xmlreader xmlrpc xmlwriter xsl zip zlib
+# version specific components
+_USE_PHP_VER56=	${_USE_PHP_ALL} mssql mysql sybase_ct interbase recode wddx
+_USE_PHP_VER71=	${_USE_PHP_ALL} interbase recode wddx
+_USE_PHP_VER72=	${_USE_PHP_ALL} interbase recode sodium wddx
+_USE_PHP_VER73=	${_USE_PHP_ALL} interbase recode sodium wddx
+_USE_PHP_VER74=	${_USE_PHP_ALL} ffi sodium
+
+bcmath_DEPENDS=	math/php${PHP_VER}m-bcmath
+bitset_DEPENDS=	math/pecl-bitset@${PHP_FLAVOR}
+bz2_DEPENDS=	archivers/php${PHP_VER}m-bz2
+calendar_DEPENDS=	misc/php${PHP_VER}m-calendar
+ctype_DEPENDS=	textproc/php${PHP_VER}m-ctype
+curl_DEPENDS=	ftp/php${PHP_VER}m-curl
+dba_DEPENDS=	databases/php${PHP_VER}m-dba
+dbase_DEPENDS=	databases/php${PHP_VER}m-dbase
+dom_DEPENDS=	textproc/php${PHP_VER}m-dom
+enchant_DEPENDS=	textproc/php${PHP_VER}m-enchant
+exif_DEPENDS=	graphics/php${PHP_VER}m-exif
+ffi_DEPENDS=	devel/php${PHP_VER}m-ffi
+fileinfo_DEPENDS=	sysutils/php${PHP_VER}m-fileinfo
+filter_DEPENDS=	security/php${PHP_VER}m-filter
+ftp_DEPENDS=	ftp/php${PHP_VER}m-ftp
+gd_DEPENDS=	graphics/php${PHP_VER}m-gd
+gettext_DEPENDS=devel/php${PHP_VER}m-gettext
+gmp_DEPENDS=	math/php${PHP_VER}m-gmp
+hash_DEPENDS=	security/php${PHP_VER}m-hash
+iconv_DEPENDS=	converters/php${PHP_VER}m-iconv
+igbinary_DEPENDS=	converters/pecl-igbinary@${PHP_FLAVOR}
+imap_DEPENDS=	mail/php${PHP_VER}m-imap
+interbase_DEPENDS=	databases/php${PHP_VER}m-interbase
+intl_DEPENDS=	devel/php${PHP_VER}m-intl
+json_DEPENDS=	devel/php${PHP_VER}m-json
+ldap_DEPENDS=	net/php${PHP_VER}m-ldap
+mbstring_DEPENDS=	converters/php${PHP_VER}m-mbstring
+.    if ${PHP_VER}>=72
+mcrypt_DEPENDS=	security/pecl-mcrypt@${PHP_FLAVOR}
+.    else
+mcrypt_DEPENDS=	security/php${PHP_VER}m-mcrypt
+.    endif
+memcache_DEPENDS=	databases/php-memcache@${PHP_FLAVOR}
+mysql_DEPENDS=	databases/php${PHP_VER}m-mysql
+memcached_DEPENDS=	databases/pecl-memcached@${PHP_FLAVOR}
+mssql_DEPENDS=	databases/php${PHP_VER}m-mssql
+mysqli_DEPENDS=	databases/php${PHP_VER}m-mysqli
+odbc_DEPENDS=	databases/php${PHP_VER}m-odbc
+opcache_DEPENDS=	www/php${PHP_VER}m-opcache
+openssl_DEPENDS=security/php${PHP_VER}m-openssl
+pcntl_DEPENDS=	devel/php${PHP_VER}m-pcntl
+pdf_DEPENDS=	print/pecl-pdflib@${PHP_FLAVOR}
+pdo_DEPENDS=	databases/php${PHP_VER}m-pdo
+pdo_dblib_DEPENDS=	databases/php${PHP_VER}m-pdo_dblib
+pdo_firebird_DEPENDS=	databases/php${PHP_VER}m-pdo_firebird
+pdo_mysql_DEPENDS=	databases/php${PHP_VER}m-pdo_mysql
+pdo_odbc_DEPENDS=	databases/php${PHP_VER}m-pdo_odbc
+pdo_pgsql_DEPENDS=	databases/php${PHP_VER}m-pdo_pgsql
+pdo_sqlite_DEPENDS=	databases/php${PHP_VER}m-pdo_sqlite
+pgsql_DEPENDS=	databases/php${PHP_VER}m-pgsql
+phar_DEPENDS=	archivers/php${PHP_VER}m-phar
+posix_DEPENDS=	sysutils/php${PHP_VER}m-posix
+pspell_DEPENDS=	textproc/php${PHP_VER}m-pspell
+radius_DEPENDS=	net/pecl-radius@${PHP_FLAVOR}
+readline_DEPENDS=	devel/php${PHP_VER}m-readline
+recode_DEPENDS=	converters/php${PHP_VER}m-recode
+redis_DEPENDS=	databases/pecl-redis@${PHP_FLAVOR}
+session_DEPENDS=www/php${PHP_VER}m-session
+shmop_DEPENDS=	devel/php${PHP_VER}m-shmop
+simplexml_DEPENDS=	textproc/php${PHP_VER}m-simplexml
+snmp_DEPENDS=	net-mgmt/php${PHP_VER}m-snmp
+soap_DEPENDS=	net/php${PHP_VER}m-soap
+sockets_DEPENDS=net/php${PHP_VER}m-sockets
+sodium_DEPENDS=	security/php${PHP_VER}m-sodium
+sqlite3_DEPENDS=databases/php${PHP_VER}m-sqlite3
+sybase_ct_DEPENDS=	databases/php${PHP_VER}m-sybase_ct
+sysvmsg_DEPENDS=devel/php${PHP_VER}m-sysvmsg
+sysvsem_DEPENDS=devel/php${PHP_VER}m-sysvsem
+sysvshm_DEPENDS=devel/php${PHP_VER}m-sysvshm
+tidy_DEPENDS=	www/php${PHP_VER}m-tidy
+tokenizer_DEPENDS=	devel/php${PHP_VER}m-tokenizer
+wddx_DEPENDS=	textproc/php${PHP_VER}m-wddx
+xml_DEPENDS=	textproc/php${PHP_VER}m-xml
+xmlreader_DEPENDS=	textproc/php${PHP_VER}m-xmlreader
+xmlrpc_DEPENDS=	net/php${PHP_VER}m-xmlrpc
+xmlwriter_DEPENDS=	textproc/php${PHP_VER}m-xmlwriter
+xsl_DEPENDS=	textproc/php${PHP_VER}m-xsl
+zip_DEPENDS=	archivers/php${PHP_VER}m-zip
+zlib_DEPENDS=	archivers/php${PHP_VER}m-zlib
+
+.    for extension in ${USE_PHP}
+ext=		${extension}
+.      if !empty(_USE_PHP_VER${PHP_VER}:M${extension:S/:build//})
+.        if empty(PHP_EXT_INC:M${extension:S/:build//})
+.          if !empty(phpm_ARGS:Mbuild) || !empty(ext:M*\:build)
+BUILD_DEPENDS+=	${PHPBASE}/lib/php/${PHP_EXT_DIR}/${extension:S/:build//}.so:${${extension:S/:build//}_DEPENDS}
+.          endif
+RUN_DEPENDS+=	${PHPBASE}/lib/php/${PHP_EXT_DIR}/${extension:S/:build//}.so:${${extension:S/:build//}_DEPENDS}
+.        endif
+.      else
+.        if ${ext:tl} != "yes" && !defined(_IGNORE_PHP_SET)
+check-makevars::
+			@${ECHO_CMD} "Unknown extension ${extension:S/:build//} for PHP ${PHP_VER}."
+			@${FALSE}
+.        endif
+.      endif
+.    endfor
+.  endif
+.endif

@@ -1,0 +1,11 @@
+--- ./TSRM/threads.m4.orig	2019-10-22 12:17:10.471200000 +0300
++++ ./TSRM/threads.m4	2019-10-22 12:15:52.694925000 +0300
+@@ -79,7 +79,7 @@
+     pthread_mutexattr_t mattr;
+     int data = 1;
+     pthread_mutexattr_init(&mattr);
+-    return pthread_create(&thd, NULL, thread_routine, &data);
++    return 0;
+ } ], [
+   pthreads_working=yes
+   ], [

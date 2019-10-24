@@ -1,0 +1,18 @@
+--- ./Zend/zend_execute.h.orig	2019-10-22 12:17:10.633315000 +0300
++++ ./Zend/zend_execute.h	2019-10-22 12:15:52.726194000 +0300
+@@ -71,6 +71,15 @@
+ ZEND_API char * zend_verify_arg_class_kind(const zend_arg_info *cur_arg_info, ulong fetch_type, const char **class_name, zend_class_entry **pce TSRMLS_DC);
+ ZEND_API int zend_verify_arg_error(int error_type, const zend_function *zf, zend_uint arg_num, const char *need_msg, const char *need_kind, const char *given_msg, const char *given_kind TSRMLS_DC);
+ 
++static zend_always_inline temp_variable *EX_TMP_VAR(void *ex, int n)
++{
++	return (temp_variable *)((zend_uintptr_t)ex + n);
++}
++static inline temp_variable *EX_TMP_VAR_NUM(void *ex, int n)
++{
++	return (temp_variable *)((zend_uintptr_t)ex - (1 + n) * sizeof(temp_variable));
++}
++
+ static zend_always_inline void i_zval_ptr_dtor(zval *zval_ptr ZEND_FILE_LINE_DC TSRMLS_DC)
+ {
+ 	if (!Z_DELREF_P(zval_ptr)) {

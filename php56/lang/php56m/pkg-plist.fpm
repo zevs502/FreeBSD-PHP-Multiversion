@@ -1,0 +1,7 @@
+etc/php/5.6/fpm/php-fpm.conf.default
+etc/rc.d/php5.6-fpm
+man/man8/php-fpm5.6.8.gz
+sbin/php-fpm5.6
+sbin/php_fpm56
+share/php/5.6/fpm/status.html
+@dir etc/php/5.6/fpm/pool.d

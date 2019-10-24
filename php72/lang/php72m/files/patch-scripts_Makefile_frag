@@ -1,0 +1,13 @@
+--- ./scripts/Makefile.frag.orig	2019-10-21 23:27:17.350400000 +0300
++++ ./scripts/Makefile.frag	2019-10-21 23:26:30.931411000 +0300
+@@ -2,8 +2,8 @@
+ # Build environment install
+ #
+ 
+-phpincludedir = $(includedir)/php
+-phpbuilddir = $(libdir)/build
++phpincludedir = $(includedir)/php/$(FREEBSD_PHP_API)
++phpbuilddir = $(libdir)/$(FREEBSD_PHP_API)/build
+ 
+ BUILD_FILES = \
+ 	scripts/phpize.m4 \

@@ -1,0 +1,111 @@
+--- ./configure.in.orig	2019-10-22 12:17:11.328326000 +0300
++++ ./configure.in	2019-10-22 12:16:20.347236000 +0300
+@@ -370,7 +370,6 @@
+ dnl .
+ dnl -------------------------------------------------------------------------
+ 
+-PTHREADS_CHECK
+ PHP_HELP_SEPARATOR([SAPI modules:])
+ PHP_SHLIB_SUFFIX_NAMES
+ PHP_BUILD_PROGRAM
+@@ -401,15 +400,9 @@
+   AC_MSG_RESULT([none])
+ fi
+ 
+-dnl Exit early
+-if test -z "$PHP_INSTALLED_SAPIS"; then
+-  AC_MSG_ERROR([Nothing to build.])
+-fi
+-
+ dnl force ZTS
+ if test "$enable_maintainer_zts" = "yes"; then
+   PTHREADS_ASSIGN_VARS
+-  PTHREADS_FLAGS
+ fi
+ 
+ dnl Starting system checks.
+@@ -691,7 +684,7 @@
+ )
+ 
+ dnl Some systems (like OpenSolaris) do not have nanosleep in libc
+-PHP_CHECK_FUNC_LIB(nanosleep, rt)
++PHP_CHECK_FUNC(nanosleep, rt)
+ 
+ dnl Check for getaddrinfo, should be a better way, but...
+ dnl Also check for working getaddrinfo
+@@ -1085,7 +1078,7 @@
+ fi
+ 
+ PHP_ARG_WITH(pear, [whether to install PEAR],
+-[  --with-pear=DIR         Install PEAR in DIR @<:@PREFIX/lib/php@:>@
++[  --with-pear=DIR         Install PEAR in DIR @<:@PREFIX/share/php@:>@
+   --without-pear          Do not install PEAR], DEFAULT, yes)
+ 
+ if test "$PHP_PEAR" != "no"; then
+@@ -1122,6 +1115,7 @@
+   PHP_ADD_MAKEFILE_FRAGMENT($abs_srcdir/pear/Makefile.frag,$abs_srcdir/pear,pear)
+ fi
+ 
++PEAR_INSTALLDIR=/usr/local/share/php
+ 
+ dnl Configuring Zend and TSRM.
+ dnl -------------------------------------------------------------------------
+@@ -1194,8 +1188,12 @@
+ 
+ ZEND_MODULE_API_NO=`$EGREP '#define ZEND_MODULE_API_NO ' $srcdir/Zend/zend_modules.h|$SED 's/#define ZEND_MODULE_API_NO //'`
+ 
++AC_SUBST(ZEND_MODULE_API_NO)
++
++FREEBSD_PHP_API=$ZEND_MODULE_API_NO
++
+ if test -z "$EXTENSION_DIR"; then
+-  extbasedir=$ZEND_MODULE_API_NO
++  extbasedir=$FREEBSD_PHP_API
+   if test "$oldstyleextdir" = "yes"; then
+     if test "$PHP_DEBUG" = "1"; then
+       part1=debug
+@@ -1242,7 +1240,7 @@
+ EXPANDED_DATADIR=$datadir
+ EXPANDED_PHP_CONFIG_FILE_PATH=`eval echo "$PHP_CONFIG_FILE_PATH"`
+ EXPANDED_PHP_CONFIG_FILE_SCAN_DIR=`eval echo "$PHP_CONFIG_FILE_SCAN_DIR"`
+-INCLUDE_PATH=.:$EXPANDED_PEAR_INSTALLDIR
++INCLUDE_PATH=.:${prefix}/share/pear
+ 
+ exec_prefix=$old_exec_prefix
+ libdir=$old_libdir
+@@ -1338,6 +1336,7 @@
+ PHP_SUBST(CXXFLAGS)
+ PHP_SUBST(CXXFLAGS_CLEAN)
+ PHP_SUBST_OLD(DEBUG_CFLAGS)
++PHP_SUBST_OLD(FREEBSD_PHP_API)
+ PHP_SUBST_OLD(EXTENSION_DIR)
+ PHP_SUBST_OLD(EXTRA_LDFLAGS)
+ PHP_SUBST_OLD(EXTRA_LDFLAGS_PROGRAM)
+@@ -1416,10 +1415,6 @@
+ ])
+ AC_PROG_LIBTOOL
+ 
+-if test "$enable_debug" != "yes"; then
+-  PHP_SET_LIBTOOL_VARIABLE([--silent])
+-fi
+-
+ dnl libtool 1.4.3 needs this.
+ PHP_SET_LIBTOOL_VARIABLE([--preserve-dup-deps])
+ 
+@@ -1452,7 +1447,7 @@
+ PHP_SUBST(install_targets)
+ PHP_SUBST(install_binary_targets)
+ 
+-PHP_INSTALL_HEADERS([Zend/ TSRM/ include/ main/ main/streams/])
++PHP_INSTALL_HEADERS([Zend/ TSRM/ main/ main/streams/])
+ 
+ PHP_ADD_SOURCES(TSRM, TSRM.c tsrm_strtok_r.c)
+ 
+@@ -1526,6 +1521,7 @@
+ ALL_OUTPUT_FILES="php5.spec main/build-defs.h \
+ scripts/phpize scripts/man1/phpize.1 \
+ scripts/php-config scripts/man1/php-config.1 \
++ext/ext_skel
+ $PHP_OUTPUT_FILES"
+ 
+ dnl

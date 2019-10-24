@@ -1,0 +1,13 @@
+--- ./scripts/phpize.in.orig	2019-10-21 23:27:17.432198000 +0300
++++ ./scripts/phpize.in	2019-10-21 23:26:30.934806000 +0300
+@@ -4,8 +4,8 @@
+ prefix='@prefix@'
+ datarootdir='@datarootdir@'
+ exec_prefix="`eval echo @exec_prefix@`"
+-phpdir="`eval echo @libdir@`/build"
+-includedir="`eval echo @includedir@`/php"
++phpdir="`eval echo @libdir@/@FREEBSD_PHP_API@`/build"
++includedir="`eval echo @includedir@`/php/@FREEBSD_PHP_API@"
+ builddir="`pwd`"
+ SED="@SED@"
+ 
