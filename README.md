@@ -1,4 +1,4 @@
-# FreeBSD-PHP-Multyversion
+# FreeBSD-PHP-Multiversion
 
 usage ./setports.sh [install | remove]
 
