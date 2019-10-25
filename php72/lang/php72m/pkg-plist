@@ -114,6 +114,7 @@ include/php/20170718/ext/mysqlnd/mysqlnd_structs.h
 include/php/20170718/ext/mysqlnd/mysqlnd_vio.h
 include/php/20170718/ext/mysqlnd/mysqlnd_wireprotocol.h
 include/php/20170718/ext/mysqlnd/php_mysqlnd.h
+include/php/20170718/ext/php_config.h
 include/php/20170718/ext/pcre/php_pcre.h
 include/php/20170718/ext/spl/php_spl.h
 include/php/20170718/ext/spl/spl_array.h

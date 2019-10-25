@@ -130,7 +130,11 @@ _INSTALLED_PHP_VER:=	${PHP_VER}
 #.    endif
 
 .  else
+.if defined(PORTCURSUFFIX)
+PHP_VER?=	${PORTCURSUFFIX:S/.//}
+.else
 PHP_VER?=	${PHP_DEFAULT:S/.//}
+.endif
 .  endif # .if exists(${PHPBASE}/etc/php.conf)
 
 # Use the "default" php version as th first version for flavors, so that it

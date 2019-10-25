@@ -23,7 +23,9 @@ PHP56_DESC=	Build PDF module to version PHP 5.6
 PHP72_DESC=	Build PDF module to version PHP 7.2
 PHP73_DESC=	Build PDF module to version PHP 7.3
 
-.if ${PORT_OPTIONS:MPHP72} || ${PORT_OPTIONS:MPHP72} || ${PORT_OPTIONS:MPHP73}
+.include <bsd.port.pre.mk>
+
+.if ${PORT_OPTIONS:MPHP56} || ${PORT_OPTIONS:MPHP72} || ${PORT_OPTIONS:MPHP73}
 
 USES=		dos2unix phpm:pecl
 

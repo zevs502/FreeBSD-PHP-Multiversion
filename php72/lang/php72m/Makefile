@@ -83,6 +83,7 @@ CONFIGURE_ARGS+=--enable-mysqlnd
 .if ${PORT_OPTIONS:MCLI}
 PHP_SAPI+=	cli
 CONFIGURE_ARGS+=--disable-cgi
+CONFIGURE_ARGS+=--disable-phpdbg
 CONFIGURE_ARGS+=--with-config-file-path="${PREFIX}/etc/php/${PORTCURSUFFIX}/cli"
 CONFIGURE_ARGS+=--with-config-file-scan-dir="${PREFIX}/etc/php/${PORTCURSUFFIX}/cli/conf.d"
 PLIST=		${PKGDIR}/pkg-plist.cli
@@ -223,6 +224,7 @@ INSTALL_TARGET+=	install-pharcmd
 	
 post-install:
 	${MKDIR} ${STAGEDIR}${PREFIX}/etc/php/${PORTCURSUFFIX}
+	${CP} ${WRKSRC}/ext/php_config.h ${STAGEDIR}/${PREFIX}/include/php/${PHPAPIVER}/ext/php_config.h
 	${INSTALL_DATA} ${WRKSRC}/php.ini-development ${WRKSRC}/php.ini-production \
 		${WRKDIR}/php.conf ${STAGEDIR}/${PREFIX}/etc/php/${PORTCURSUFFIX}
 .else

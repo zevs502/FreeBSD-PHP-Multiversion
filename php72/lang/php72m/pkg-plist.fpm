@@ -5,5 +5,5 @@ man/man8/php-fpm7.2.8.gz
 sbin/php-fpm7.2
 sbin/php_fpm72
 share/php/7.2/fpm/status.html
-@dir etc/php/7.2/cgi/pool.d
-@dir etc/php/7.2/cgi/conf.d
+@dir etc/php/7.2/fpm/pool.d
+@dir etc/php/7.2/fpm/conf.d

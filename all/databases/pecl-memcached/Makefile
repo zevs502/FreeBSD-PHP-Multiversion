@@ -14,25 +14,22 @@ LICENSE_FILE=	${WRKSRC}/LICENSE
 BUILD_DEPENDS=	libmemcached>=1.0.18:databases/libmemcached
 LIB_DEPENDS=	libmemcached.so:databases/libmemcached
 
+OPTIONS_DEFINE=	IGBINARY SASL
 OPTIONS_RADIO=		PHP-V
-OPTIONS_RADIO_PHP-V=	PHP56 PHP72 PHP73
+OPTIONS_RADIO_PHP-V=	PHP72 PHP73
 
-OPTIONS_DEFAULT=PHP72
+OPTIONS_DEFAULT=IGBINARY SASL
+IGBINARY_DESC=	Binary serializer support
 
 PHP-V_DESC=	Please select PHP version or unselect all option
-PHP56_DESC=	Build PDF module to version PHP 5.6
 PHP72_DESC=	Build PDF module to version PHP 7.2
 PHP73_DESC=	Build PDF module to version PHP 7.3
 
-.if ${PORT_OPTIONS:MPHP72} || ${PORT_OPTIONS:MPHP72} || ${PORT_OPTIONS:MPHP73}
+.include <bsd.port.pre.mk>
+
+.if ${PORT_OPTIONS:MPHP72} || ${PORT_OPTIONS:MPHP73}
 
 USES=		phpm:pecl pkgconfig
-
-.if ${PORT_OPTIONS:MPHP56}
-PORTCURSUFFIX=		5.6
-PHPAPIVER=		20131226
-IGNORE_WITH_PHP=	71 72 73 74
-.endif
                                                                                     
 .if ${PORT_OPTIONS:MPHP72}
 PORTCURSUFFIX=		7.2
@@ -54,10 +51,6 @@ IGNORE_WITH_PHP=	74
 USE_PHP=	json:build session:build
 
 CONFIGURE_ARGS=	--with-libmemcached-dir=${LOCALBASE}
-
-OPTIONS_DEFINE=	IGBINARY SASL
-OPTIONS_DEFAULT=SASL
-IGBINARY_DESC=	Binary serializer support
 
 IGBINARY_CONFIGURE_ENABLE=	memcached-igbinary
 IGBINARY_USE=		PHP=igbinary:build
