@@ -5,3 +5,4 @@ sbin/php-fpm5.6
 sbin/php_fpm56
 share/php/5.6/fpm/status.html
 @dir etc/php/5.6/fpm/pool.d
+@dir etc/php/5.6/fpm/conf.d

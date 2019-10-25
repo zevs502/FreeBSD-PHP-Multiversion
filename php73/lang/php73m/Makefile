@@ -236,16 +236,28 @@ do-install:
 	${MKDIR} ${STAGEDIR}${PREFIX}/${APACHEMODDIR}
 	${INSTALL_LIB} ${WRKSRC}/libs/${MODULENAME}.so \
 		${STAGEDIR}${PREFIX}/${APACHEMODDIR}
+
+post-install:
+	${MKDIR} ${STAGEDIR}${PREFIX}/etc/php/${PORTCURSUFFIX}/apache24/conf.d
+
 .endif
 
 .if ${PORT_OPTIONS:MCLI}
 
 INSTALL_TARGET=		install-cli
+
+post-install:
+	${MKDIR} ${STAGEDIR}${PREFIX}/etc/php/${PORTCURSUFFIX}/cli/conf.d
+
 .endif
 
 .if ${PORT_OPTIONS:MCGI}
 
 INSTALL_TARGET=		install-cgi
+
+post-install:
+	${MKDIR} ${STAGEDIR}${PREFIX}/etc/php/${PORTCURSUFFIX}/cgi/conf.d
+
 .endif
 
 .if ${PORT_OPTIONS:MFPM}
@@ -253,6 +265,7 @@ INSTALL_TARGET=		install-cgi
 INSTALL_TARGET=		install-fpm
 
 post-install:
+	${MKDIR} ${STAGEDIR}${PREFIX}/etc/php/${PORTCURSUFFIX}/fpm/conf.d
 	${LN} -s php-fpm${PORTCURSUFFIX} ${STAGEDIR}${PREFIX}/sbin/php_fpm73
 
 
@@ -266,6 +279,7 @@ do-install:
 		${STAGEDIR}${PREFIX}/lib/
 
 post-install:
+	${MKDIR} ${STAGEDIR}${PREFIX}/etc/php/${PORTCURSUFFIX}/embed/conf.d
 	${MKDIR} ${STAGEDIR}${PREFIX}/include/php/${PHPAPIVER}/sapi/embed
 	${CP} -r ${WRKSRC}/sapi/embed/php_embed.h \
 		${STAGEDIR}${PREFIX}/include/php/${PHPAPIVER}/sapi/embed/
@@ -275,6 +289,10 @@ post-install:
 .if ${PORT_OPTIONS:MPHPDBG}
 
 INSTALL_TARGET=		install-phpdbg
+
+post-install:
+	${MKDIR} ${STAGEDIR}${PREFIX}/etc/php/${PORTCURSUFFIX}/phpdbg/conf.d
+
 .endif
 
 .endif

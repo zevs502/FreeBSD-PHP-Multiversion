@@ -1,2 +1,3 @@
 include/php/20180731/sapi/embed/php_embed.h
 lib/libphp7.so
+@dir etc/php/7.3/embed/conf.d

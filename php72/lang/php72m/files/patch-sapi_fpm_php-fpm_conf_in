@@ -22,4 +22,4 @@
  ;  - the global prefix if it's been set (-p argument)
  ;  - @prefix@ otherwise
 -include=@php_fpm_sysconfdir@/php-fpm.d/*.conf
-+include=@php_fpm_sysconfdir@/fpm/pool.d/*.conf
++include=@php_fpm_sysconfdir@/php/@program_suffix@/fpm/pool.d/*.conf
