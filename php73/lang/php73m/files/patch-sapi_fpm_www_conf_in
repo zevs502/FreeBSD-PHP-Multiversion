@@ -1,6 +1,6 @@
---- ./sapi/fpm/www.conf.in.orig	2019-10-21 23:27:16.929247000 +0300
-+++ ./sapi/fpm/www.conf.in	2019-10-21 23:25:54.772033000 +0300
-@@ -27,10 +27,14 @@
+--- ./sapi/fpm/www.conf.in.orig	2019-09-24 12:20:18.000000000 +0300
++++ ./sapi/fpm/www.conf.in	2019-10-26 00:31:51.655019000 +0300
+@@ -27,13 +27,17 @@
  ; Valid syntaxes are:
  ;   'ip.add.re.ss:port'    - to listen on a TCP socket to a specific IPv4 address on
  ;                            a specific port;
@@ -14,4 +14,8 @@
 +;                                  FreeBSD for security reasons;
  ;   '/path/to/unix/socket' - to listen on a unix socket.
  ; Note: This value is mandatory.
- listen = 127.0.0.1:9002
+-listen = 127.0.0.1:9000
++listen = 127.0.0.1:9001
+ 
+ ; Set listen(2) backlog.
+ ; Default Value: 511 (-1 on FreeBSD and OpenBSD)
